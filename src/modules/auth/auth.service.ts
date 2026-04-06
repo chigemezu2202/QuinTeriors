@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { findAdminByEmail, findAdminById, saveAuthToken, deleteAuthToken } from './auth.repository.js';
-import { jwtExpiry, jwtSecret } from '../../config/jwt.js';
+import { jwtExpiry, jwtSecret } from '../../constants/jwt.js';
 
 export async function authenticateAdmin(email: string, password: string) {
     const admin = await findAdminByEmail(email);

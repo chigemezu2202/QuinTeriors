@@ -1,23 +1,58 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { registerAdmin } from './admins.service.js';
 import { errorResponse, successResponse } from '../../utils/http.js';
+import { UserRole } from '../../types/index.js';
+import { AuthRequest } from '../../middlewares/auth.js';
 
-export enum UserRole {
-    super_admin = "super_admin",
-    editor = "editor",
+// Helper: Validate and normalize role against UserRole enum
+function validateRole(role: unknown): UserRole {
+    const validRoles = Object.values(UserRole);
+    if (typeof role === 'string' && validRoles.includes(role as UserRole)) {
+        return role as UserRole;
+    }
+    throw new Error(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
 }
-export async function registerAdminController(req: Request, res: Response) {
+
+export async function registerAdminController(req: AuthRequest, res: Response) {
     try {
-        const payload = req.body as {
-            email: string;
-            password: string;
-            role: UserRole;
-        };
+        // Ensure caller is authenticated
+        if (!req.admin) {
+            return errorResponse(res, 'Authentication required', 401);
+        }
+
+        const email = req.body?.email;
+        const password = req.body?.password;
+        let role = req.body?.role;
+
+        // Validate email and password (required fields)
+        if (!email || typeof email !== 'string') {
+            return errorResponse(res, 'Email is required', 400);
+        }
+        if (!password || typeof password !== 'string') {
+            return errorResponse(res, 'Password is required', 400);
+        }
+
+        // Default role to 'editor'
+        if (!role) {
+            role = UserRole.editor;
+        } else {
+            // Validate role against UserRole enum
+            try {
+                role = validateRole(role);
+            } catch (error) {
+                return errorResponse(res, error instanceof Error ? error.message : 'Invalid role', 400);
+            }
+        }
+
+        // Authorization check: only super_admin can create super_admin accounts
+        if (role === UserRole.super_admin && req.admin.role !== UserRole.super_admin) {
+            return errorResponse(res, 'Only super_admin can create super_admin accounts', 403);
+        }
 
         const admin = await registerAdmin({
-            email: payload.email,
-            password: payload.password,
-            role: payload.role
+            email,
+            password,
+            role
         });
 
         return successResponse(res, admin, 201);
