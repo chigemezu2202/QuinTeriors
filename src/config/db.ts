@@ -20,8 +20,9 @@ function parseDatabaseUrl(url: string) {
             ...(isProduction ? { ssl: { rejectUnauthorized: true } } : {})
         };
     } catch (error) {
-        console.error('Invalid DATABASE_URL format:');
-        throw new Error('Invalid DATABASE_URL format');
+        const message = error instanceof Error ? error.message : 'Invalid DATABASE_URL format';
+        console.error('DATABASE_URL error:', message);
+        throw error instanceof Error ? error : new Error('Invalid DATABASE_URL format');
     }
 }
 
