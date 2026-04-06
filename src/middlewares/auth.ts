@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { db } from '../config/db.js';
-import { jwtSecret } from '../config/jwt.js';
+import { jwtSecret } from '../constants/jwt.js';
 import { errorResponse } from '../utils/http.js';
 
 export interface AuthRequest extends Request {
