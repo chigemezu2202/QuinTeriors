@@ -33,7 +33,7 @@ export async function registerAdminController(req: AuthRequest, res: Response) {
         }
 
         // Default role to 'editor'
-        if (!role) {
+        if (role === undefined) {
             role = UserRole.editor;
         } else {
             // Validate role against UserRole enum

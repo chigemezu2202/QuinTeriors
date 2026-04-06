@@ -1,7 +1,4 @@
-import dotenv from "dotenv";
 import mysql from "mysql2/promise";
-
-dotenv.configDotenv();
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -9,17 +6,21 @@ const isProduction = process.env.NODE_ENV === 'production';
 function parseDatabaseUrl(url: string) {
     try {
         const dbUrl = new URL(url);
+        const database = dbUrl.pathname.slice(1);// Remove leading /
+        if (!database) {
+            throw new Error('Database name is required in DATABASE_URL');
+        }
         return {
             host: dbUrl.hostname || 'localhost',
             port: dbUrl.port ? parseInt(dbUrl.port) : 3306,
             user: dbUrl.username || '',
             password: dbUrl.password || '',
-            database: dbUrl.pathname.slice(1) || '', // Remove leading /
+            database,
             // Fix: If not production, remove the key entirely instead of setting it to undefined
             ...(isProduction ? { ssl: { rejectUnauthorized: true } } : {})
         };
     } catch (error) {
-        console.error('Invalid DATABASE_URL format:', error);
+        console.error('Invalid DATABASE_URL format:');
         throw new Error('Invalid DATABASE_URL format');
     }
 }
