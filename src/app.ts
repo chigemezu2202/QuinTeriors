@@ -20,7 +20,22 @@ import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
-app.use(cors());
+// CORS configuration for production
+const corsOptions = {
+    origin: process.env.NODE_ENV === 'production'
+        ? [
+            'http://localhost:3000/',
+            'http://localhost:5173/',
+            'http://localhost:5174/',
+            'https://yourdomain.com',
+            'https://www.yourdomain.com',
+            // Add your frontend domains here
+        ]
+        : true, // Allow all in development
+    credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // API routes
