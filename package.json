@@ -4,7 +4,8 @@
   "description": "",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run postbuild",
+    "postbuild": "mkdir -p dist/config && cp src/config/ca.pem dist/config/ 2>/dev/null || true",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "seed": "tsx src/seed.ts",
