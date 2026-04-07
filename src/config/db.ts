@@ -1,3 +1,5 @@
+import * as path from 'path';
+import * as fs from 'fs';
 import mysql from "mysql2/promise";
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -7,17 +9,28 @@ function parseDatabaseUrl(url: string) {
     try {
         const dbUrl = new URL(url);
         const database = dbUrl.pathname.slice(1);// Remove leading /
-        if (!database) {
+
+        // Remove ?ssl-mode=REQUIRED from URL pathname if URL parser includes it
+        const dbName = database.split('?')[0];
+
+        //Sanitize the database name to prevent potential issues
+        if (!dbName) {
+            console.log(`Database name is required`)
             throw new Error('Database name is required in DATABASE_URL');
         }
         return {
-            host: dbUrl.hostname || 'localhost',
+            host: dbUrl.hostname,
             port: dbUrl.port ? parseInt(dbUrl.port) : 3306,
-            user: dbUrl.username || '',
-            password: dbUrl.password || '',
-            database,
+            user: dbUrl.username,
+            password: dbUrl.password,
+            database: dbName,
             // Fix: If not production, remove the key entirely instead of setting it to undefined
-            ...(isProduction ? { ssl: { rejectUnauthorized: true } } : {})
+            ...(isProduction ? {
+                ssl: {
+                    ca: fs.readFileSync(path.join(__dirname, '..', '..', 'ca.pem')),
+                    rejectUnauthorized: true
+                }
+            } : {})
         };
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Invalid DATABASE_URL format';
@@ -36,7 +49,7 @@ const dbConfig = process.env.DATABASE_URL
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
         // Fix: Same here, omit ssl if not needed
-        ...(isProduction ? { ssl: { rejectUnauthorized: true } } : {})
+        ...(isProduction ? { ssl: { rejectUnauthorized: false } } : {})
     };
 
 export const db = mysql.createPool({

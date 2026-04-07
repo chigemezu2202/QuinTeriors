@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
 import { db } from './config/db.js';
 
-const TEST_ADMIN_EMAIL = 'admin1@quinteriors.com';
-const TEST_ADMIN_PASSWORD = 'Admin1@12345'; // Change this to your preferred password
+const TEST_ADMIN_EMAIL = 'admin@quinteriors.com';
+const TEST_ADMIN_PASSWORD = 'Admin@12345'; // Change this to your preferred password
 
 async function seed() {
     try {
