@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import cors, { CorsOptions } from 'cors';
 import 'dotenv/config';
 
 // Import routes
@@ -20,23 +20,43 @@ import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
-// CORS configuration for production
-const corsOptions = {
-    origin: process.env.NODE_ENV === 'production'
-        ? [
-            'http://localhost:3000',
-            'http://localhost:5173',
-            'http://localhost:5174',
-            'https://yourdomain.com',
-            'https://www.yourdomain.com',
-            // Add your frontend domains here
-        ]
-        : true, // Allow all in development
-    credentials: true,
+//TODO: Allowed Origin for CORS
+const allowedOrigin: (string | undefined)[] = [
+    process.env.CLIENT_URL,
+    "http://localhost:5173", // local dev
+];
+//TODO: Enable CORS middleware with proper options
+const corsOptions : CorsOptions = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        // Allow requests with no origin (like curl, Postman, or same-server calls)
+        console.log("🌍 Incoming origin:", origin);
+        
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigin.includes(origin)) {
+            callback(null, true);
+        } else {
+            if (process.env.NODE_ENV !== 'production') {
+                console.warn(`🚫 [CORS BLOCKED] Origin not allowed: ${origin}`);
+            }
+            callback(new Error('Not allowed by CORS'));
+        }
+    }, // e.g. your Vite/React URL
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+    credentials: true, // Allow cookies and authorization headers
+    optionsSuccessStatus: 204, // For legacy browsers (IE, SmartTVs)
 };
 
-app.use(cors(corsOptions));
+
+app.use(cors(corsOptions)); // Apply the cors config
 app.use(express.json());
+
+//NOTE: Auto Get The Current Request Time , Method, Host and Url
+app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(`QuinTeriors Server Listening On Host: ${req.host.concat(req.path)}, Timestamp: [${timestamp}], Req Method: ${req.method}`);
+    next();
+});
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
