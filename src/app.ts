@@ -2,6 +2,8 @@ import express from 'express';
 import cors, { CorsOptions } from 'cors';
 import 'dotenv/config';
 
+//TODO: import rootroute from router
+import rootRouter from './routes/root.route.js'
 // Import routes
 import authRoutes from './modules/auth/auth.routes.js';
 import leadsRoutes from './modules/leads/leads.routes.js';
@@ -59,6 +61,8 @@ app.use((req, res, next) => {
 });
 
 // API routes
+//TODO: Create Root Route For Testing  
+app.use("/", rootRouter)
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/leads', leadsRoutes);
 app.use('/api/v1/services', servicesRoutes);
