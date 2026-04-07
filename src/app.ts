@@ -54,7 +54,7 @@ app.use(express.json());
 //NOTE: Auto Get The Current Request Time , Method, Host and Url
 app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
-    console.log(`QuinTeriors Server Listening On Host: ${req.host.concat(req.path)}, Timestamp: [${timestamp}], Req Method: ${req.method}`);
+    console.log(`QuinTeriors Server Listening On Host: ${req.hostname.concat(req.path)}, Timestamp: [${timestamp}], Req Method: ${req.method}`);
     next();
 });
 
