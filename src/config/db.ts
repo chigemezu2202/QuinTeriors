@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as fs from 'fs';
 import mysql from "mysql2/promise";
 
@@ -26,7 +27,7 @@ function parseDatabaseUrl(url: string) {
             // Fix: If not production, remove the key entirely instead of setting it to undefined
             ...(isProduction ? {
                 ssl: {
-                    ca: fs.readFileSync('./ca.pem'),
+                    ca: fs.readFileSync(path.join(__dirname, '..', '..', 'ca.pem')),
                     rejectUnauthorized: true
                 }
             } : {})
