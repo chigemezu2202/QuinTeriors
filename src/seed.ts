@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
 import { db } from './config/db.js';
 
-const TEST_ADMIN_EMAIL = 'admin@quinteriors.com';
-const TEST_ADMIN_PASSWORD = 'Admin@12345'; // Change this to your preferred password
+const TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || '';
+const TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || ''; // Change this to your preferred password
 
 async function seed() {
     try {
@@ -30,7 +30,7 @@ async function seed() {
         console.log('✓ Admin account created successfully\n');
         console.log('📝 Test Credentials:');
         console.log(`   Email:    ${TEST_ADMIN_EMAIL}`);
-        console.log(`   Password: ${TEST_ADMIN_PASSWORD}\n`);
+        // console.log(`   Password: ${TEST_ADMIN_PASSWORD}\n`);
         console.log('🔐 Use these to login at: POST /api/v1/auth/login\n');
 
         process.exit(0);
