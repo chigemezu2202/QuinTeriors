@@ -4,6 +4,11 @@ import { db } from './config/db.js';
 const TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || '';
 const TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || ''; // Change this to your preferred password
 
+if (!TEST_ADMIN_EMAIL || !TEST_ADMIN_PASSWORD) {
+    console.error('❌ Missing required environment variables: TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD must be set');
+    process.exit(1);
+}
+
 async function seed() {
     try {
         console.log('🌱 Seeding admin account...\n');
