@@ -32,7 +32,7 @@ function parseDatabaseUrl(url: string) {
             // Fix: If not production, remove the key entirely instead of setting it to undefined
             ...(isProduction ? {
                 ssl: {
-                    ca: fs.readFileSync(process.env.SSL_CA_PATH || path.join(__dirname, '..', '..', 'ca.pem')),
+                    ca: fs.readFileSync(process.env.SSL_CA_PATH || path.join(__dirname, 'ca.pem')),
                     rejectUnauthorized: true
                 }
             } : {})
