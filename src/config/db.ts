@@ -28,14 +28,7 @@ function parseDatabaseUrl(url: string) {
             port: dbUrl.port ? parseInt(dbUrl.port) : 3306,
             user: dbUrl.username,
             password: dbUrl.password,
-            database: dbName,
-            // Fix: If not production, remove the key entirely instead of setting it to undefined
-            ...(isProduction ? {
-                ssl: {
-                    ca: fs.readFileSync(process.env.SSL_CA_PATH || path.join(__dirname, '..', '..', 'ca.pem')),
-                    rejectUnauthorized: true
-                }
-            } : {})
+            database: dbName
         };
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Invalid DATABASE_URL format';
@@ -45,16 +38,45 @@ function parseDatabaseUrl(url: string) {
 }
 
 // If DATABASE_URL exists, use it; otherwise, use individual env vars
+function loadSslCa() {
+    if (process.env.SSL_CA_CONTENT) {
+        return Buffer.from(process.env.SSL_CA_CONTENT, 'utf8');
+    }
+
+    const candidatePaths = [
+        process.env.SSL_CA_PATH,
+        path.join(__dirname, 'ca.pem'),
+        path.join(__dirname, '..', '..', 'src', 'config', 'ca.pem'),
+    ].filter(Boolean) as string[];
+
+    for (const candidatePath of candidatePaths) {
+        const resolvedPath = path.resolve(candidatePath);
+        if (fs.existsSync(resolvedPath)) {
+            return fs.readFileSync(resolvedPath);
+        }
+    }
+
+    throw new Error('SSL CA certificate not found. Set SSL_CA_CONTENT or SSL_CA_PATH, or place ca.pem in dist/config or src/config.');
+}
+
+const sslOptions = isProduction
+    ? {
+        ssl: {
+            ca: loadSslCa(),
+            rejectUnauthorized: true
+        }
+    }
+    : {};
+
 const dbConfig = process.env.DATABASE_URL
-    ? parseDatabaseUrl(process.env.DATABASE_URL)
+    ? { ...parseDatabaseUrl(process.env.DATABASE_URL), ...sslOptions }
     : {
         host: process.env.DB_HOST || 'localhost',
         port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306,
         database: process.env.DB_NAME || 'quinteriors',
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
-        // Fix: Same here, omit ssl if not needed
-        ...(isProduction ? { ssl: { rejectUnauthorized: false } } : {})
+        ...(isProduction ? sslOptions : {})
     };
 
 export const db = mysql.createPool({
