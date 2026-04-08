@@ -14,6 +14,7 @@ export async function loginController(req: Request, res: Response) {
 
         return successResponse(res, result);
     } catch (error) {
+        console.error('Login error:', error);
         return errorResponse(res, 'Unable to authenticate admin');
     }
 }
