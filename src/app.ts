@@ -22,6 +22,9 @@ import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
+// Set Trust Proxy
+app.set('trust proxy', 1);
+
 //TODO: Allowed Origin for CORS
 const allowedOrigin: (string | undefined)[] = [
     process.env.CLIENT_URL,
