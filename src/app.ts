@@ -21,6 +21,7 @@ import serviceItemsRoutes from './modules/service-items/service-items.routes.js'
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Set Trust Proxy
 app.set('trust proxy', 1);
