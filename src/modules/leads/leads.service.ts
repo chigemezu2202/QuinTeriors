@@ -10,11 +10,20 @@ export async function createLead(data: {
     user_agent?: string | null;
 }) {
     const id = await repo.insertLead(data);
+    console.log({ id, ...data, status: 'new' })
     return { id, ...data, status: 'new' };
 }
 
 export async function getLeads(options: { page: number; limit: number; status?: string | undefined }) {
     return repo.findLeads(options);
+}
+
+export async function getLeadById(id: number) {
+    return repo.findLeadById(id);
+}
+
+export async function deleteLead(id: number) {
+    return repo.deleteLead(id);
 }
 
 export async function updateLead(id: number, data: {

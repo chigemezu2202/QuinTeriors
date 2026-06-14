@@ -12,6 +12,7 @@ export async function createServiceController(req: Request, res: Response) {
             is_featured?: boolean;
         };
 
+        console.log("service created");
         const service = await serviceService.createService(payload);
         return successResponse(res, service, 201);
     } catch (error) {

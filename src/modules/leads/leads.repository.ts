@@ -61,6 +61,32 @@ export async function findLeads(options: {
     };
 }
 
+export async function findLeadById(id: number) {
+    const [rows] = await db.query(
+        `SELECT id, name, phone, email, message, service_id, status, ip_address, user_agent, created_at 
+         FROM leads 
+         WHERE id = ? 
+         LIMIT 1`,
+        [id],
+    );
+
+    const lead = (rows as LeadRecord[])[0];
+
+    
+    return lead || null;
+}
+
+export async function deleteLead(id: number) {
+    const [result] = await db.query(
+        `DELETE FROM leads WHERE id = ?`,
+        [id],
+    );
+
+    const deleteResult = result as { affectedRows: number };
+
+    return deleteResult.affectedRows > 0;
+}
+
 export async function updateLead(id: number, data: {
     name?: string;
     phone?: string;
