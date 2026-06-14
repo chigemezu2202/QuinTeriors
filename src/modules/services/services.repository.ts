@@ -18,10 +18,12 @@ export async function createService(data: {
     image_url?: string | null;
     is_featured?: boolean;
 }) {
+    console.log(data.description, data.image_url, data.is_featured, data.name, data.slug);
     const [result] = await db.query(
         'INSERT INTO services (name, slug, description, image_url, is_featured) VALUES (?, ?, ?, ?, ?)',
         [data.name, data.slug, data.description, data.image_url, data.is_featured ? 1 : 0],
     );
+    console.log("This function actually runned")
     const insertResult = result as { insertId: number };
     return insertResult.insertId;
 }

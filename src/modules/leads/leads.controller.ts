@@ -42,11 +42,38 @@ export async function getLeadsController(req: Request, res: Response) {
     }
 }
 
+export async function getLeadByIdController(req: Request, res: Response) {
+    try {
+        const id = Number(req.params.id);
+
+        if (Number.isNaN(id) || id < 1) {
+            return errorResponse(res, 'Invalid lead id', 400);
+        }
+
+        const lead = await leadService.getLeadById(id);
+
+        if (!lead) {
+            return errorResponse(res, 'Lead not found', 404);
+        }
+
+        return successResponse(res, lead);
+    } catch (error) {
+        return errorResponse(res, 'Unable to fetch lead');
+    }
+}
+
 export async function updateLeadController(req: Request, res: Response) {
     try {
         const id = Number(req.params.id);
+
         if (Number.isNaN(id) || id < 1) {
             return errorResponse(res, 'Invalid lead id', 400);
+        }
+
+        const existingLead = await leadService.getLeadById(id);
+
+        if (!existingLead) {
+            return errorResponse(res, 'Lead not found', 404);
         }
 
         const payload = req.body as {
@@ -59,12 +86,37 @@ export async function updateLeadController(req: Request, res: Response) {
         };
 
         const updated = await leadService.updateLead(id, payload);
+
         if (!updated) {
-            return errorResponse(res, 'Lead not found or no changes provided', 404);
+            return errorResponse(res, 'No changes provided', 400);
         }
 
-        return successResponse(res, { id, ...payload });
+        const updatedLead = await leadService.getLeadById(id);
+
+        return successResponse(res, updatedLead);
     } catch (error) {
         return errorResponse(res, 'Unable to update lead');
+    }
+}
+
+export async function deleteLeadController(req: Request, res: Response) {
+    try {
+        const id = Number(req.params.id);
+
+        if (Number.isNaN(id) || id < 1) {
+            return errorResponse(res, 'Invalid lead id', 400);
+        }
+
+        const deleted = await leadService.deleteLead(id);
+
+        if (!deleted) {
+            return errorResponse(res, 'Lead not found', 404);
+        }
+
+        return successResponse(res, {
+            message: 'Lead deleted successfully',
+        });
+    } catch (error) {
+        return errorResponse(res, 'Unable to delete lead');
     }
 }

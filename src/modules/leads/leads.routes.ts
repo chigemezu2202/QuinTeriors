@@ -1,5 +1,7 @@
 import { Router } from 'express';
-import { createLeadController, getLeadsController, updateLeadController } from './leads.controller.js';
+import {
+    getLeadByIdController, deleteLeadController, createLeadController, getLeadsController, updateLeadController
+} from './leads.controller.js';
 import { leadsRateLimiter } from '../../middlewares/rateLimit.js';
 import { validateSchema } from '../../middlewares/validate.js';
 import { z } from 'zod';
@@ -30,8 +32,18 @@ const updateLeadSchema = z.object({
     }),
 });
 
+// router.post('/', leadsRateLimiter, validateSchema(createLeadSchema), createLeadController);
+// router.get('/', getLeadsController);
+// router.put('/:id', validateSchema(updateLeadSchema), updateLeadController);
+
 router.post('/', leadsRateLimiter, validateSchema(createLeadSchema), createLeadController);
+
 router.get('/', getLeadsController);
-router.put('/:id', validateSchema(updateLeadSchema), updateLeadController);
+
+router.get('/:id', getLeadByIdController);
+
+router.patch('/:id', validateSchema(updateLeadSchema), updateLeadController);
+
+router.delete('/:id', deleteLeadController);
 
 export default router;
