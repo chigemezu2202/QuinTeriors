@@ -120,3 +120,59 @@ export async function deleteLeadController(req: Request, res: Response) {
         return errorResponse(res, 'Unable to delete lead');
     }
 }
+
+// Add Trash Controller 
+export async function getDeletedLeadsController(
+    req: Request,
+    res: Response,
+) {
+    try {
+        const leads = await leadService.getDeletedLeads();
+
+        return successResponse(res, leads);
+    } catch (error) {
+        return errorResponse(
+            res,
+            'Unable to fetch deleted leads',
+        );
+    }
+}
+
+// Add Restore Controller
+export async function restoreLeadController(
+    req: Request,
+    res: Response,
+) {
+    try {
+        const id = Number(req.params.id);
+
+        if (Number.isNaN(id) || id < 1) {
+            return errorResponse(
+                res,
+                'Invalid lead id',
+                400,
+            );
+        }
+
+        const restored =
+            await leadService.restoreLead(id);
+
+        if (!restored) {
+            return errorResponse(
+                res,
+                'Lead not found',
+                404,
+            );
+        }
+
+        return successResponse(res, {
+            message:
+                'Lead restored successfully',
+        });
+    } catch (error) {
+        return errorResponse(
+            res,
+            'Unable to restore lead',
+        );
+    }
+}

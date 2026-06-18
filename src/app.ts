@@ -27,7 +27,7 @@ app.set('trust proxy', 1);
 
 //TODO: Allowed Origin for CORS
 const allowedOrigin: (string | undefined)[] = [
-    process.env.CLIENT_URL,
+    process.env.CLIENT_URL, //remote domain
     "http://localhost:5173", // local dev
 ];
 //TODO: Enable CORS middleware with proper options

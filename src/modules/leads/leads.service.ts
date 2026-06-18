@@ -37,3 +37,13 @@ export async function updateLead(id: number, data: {
     const updated = await repo.updateLead(id, data);
     return updated;
 }
+
+// Add Restore  Service
+export async function restoreLead(id: number) {
+    return repo.restoreLead(id);
+}
+
+// Add Trash Service 
+export async function getDeletedLeads() {
+    return repo.findDeletedLeads();
+}

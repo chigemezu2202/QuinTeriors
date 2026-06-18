@@ -11,6 +11,8 @@ export interface LeadRecord {
     ip_address?: string | null;
     user_agent?: string | null;
     created_at: string;
+    updated_at?: string | null;
+    deleted_at?: string | null;
 }
 
 export async function insertLead(data: {
@@ -36,7 +38,7 @@ export async function findLeads(options: {
     status?: string | undefined;
 }) {
     const offset = (options.page - 1) * options.limit;
-    const filters: string[] = [];
+    const filters: string[] = ['deleted_at IS NULL'];
     const values: Array<string | number> = [];
 
     if (options.status) {
@@ -46,7 +48,7 @@ export async function findLeads(options: {
 
     const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
     const [rows] = await db.query(
-        `SELECT id, name, phone, email, message, service_id, status, ip_address, user_agent, created_at FROM leads ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        `SELECT id, name, phone, email, message, service_id, status, ip_address, user_agent, created_at, updated_at, deleted_at FROM leads ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
         [...values, options.limit, offset],
     );
 
@@ -65,20 +67,21 @@ export async function findLeadById(id: number) {
     const [rows] = await db.query(
         `SELECT id, name, phone, email, message, service_id, status, ip_address, user_agent, created_at 
          FROM leads 
-         WHERE id = ? 
+         WHERE id = ?
+         AND deleted_at IS NULL
          LIMIT 1`,
         [id],
     );
 
     const lead = (rows as LeadRecord[])[0];
 
-    
+
     return lead || null;
 }
 
 export async function deleteLead(id: number) {
     const [result] = await db.query(
-        `DELETE FROM leads WHERE id = ?`,
+        `UPDATE leads SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL`,
         [id],
     );
 
@@ -128,7 +131,70 @@ export async function updateLead(id: number, data: {
     }
 
     values.push(id);
-    const [result] = await db.query(`UPDATE leads SET ${assignments.join(', ')} WHERE id = ?`, values);
+    const [result] = await db.query(`UPDATE leads SET ${assignments.join(', ')} WHERE id = ? AND deleted_at IS NULL`, values);
     const updateResult = result as { affectedRows: number };
     return updateResult.affectedRows > 0;
+}
+
+
+// Add Restore Function
+export async function restoreLead(id: number) {
+    const [result] = await db.query(
+        `
+        UPDATE leads
+        SET
+            deleted_at = NULL,
+            updated_at = NOW()
+        WHERE id = ?
+            AND deleted_at IS NOT NULL
+        `,
+        [id],
+    );
+
+    const restoreResult = result as { affectedRows: number };
+
+    return restoreResult.affectedRows > 0;
+}
+
+// Add Trash Query
+export async function findDeletedLeads(page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+
+    // 1. Get total count
+    const [countRows] = await db.query(
+        `
+        SELECT COUNT(*) as total
+        FROM leads
+        WHERE deleted_at IS NOT NULL
+        `
+    );
+
+    const total = (countRows as any)[0].total;
+
+    // 2. Get paginated data
+    const [rows] = await db.query(
+        `
+        SELECT
+            id,
+            name,
+            phone,
+            email,
+            message,
+            service_id,
+            status,
+            created_at,
+            updated_at,
+            deleted_at
+        FROM leads
+        WHERE deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC
+        LIMIT ? OFFSET ?
+        `,
+        [limit, offset]
+    );
+
+    return {
+        items: rows as LeadRecord[],
+        total,
+    };
 }
