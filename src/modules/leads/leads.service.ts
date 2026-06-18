@@ -44,6 +44,6 @@ export async function restoreLead(id: number) {
 }
 
 // Add Trash Service 
-export async function getDeletedLeads() {
-    return repo.findDeletedLeads();
+export async function getDeletedLeads(options: { page: number; limit: number }) {
+    return repo.findDeletedLeads(options);
 }

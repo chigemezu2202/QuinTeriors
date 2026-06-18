@@ -127,7 +127,13 @@ export async function getDeletedLeadsController(
     res: Response,
 ) {
     try {
-        const leads = await leadService.getDeletedLeads();
+        const page = Number(req.query.page ?? 1);
+        const limit = Number(req.query.limit ?? 10);
+
+        const leads = await leadService.getDeletedLeads({
+            page: Number.isNaN(page) || page < 1 ? 1 : page,
+            limit: Number.isNaN(limit) || limit < 1 ? 10 : limit,
+        });
 
         return successResponse(res, leads);
     } catch (error) {

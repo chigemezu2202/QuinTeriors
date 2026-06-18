@@ -157,21 +157,13 @@ export async function restoreLead(id: number) {
 }
 
 // Add Trash Query
-export async function findDeletedLeads(page = 1, limit = 10) {
-    const offset = (page - 1) * limit;
+export async function findDeletedLeads(options: {
+    page: number;
+    limit: number;
+     
+}) {
+    const offset = (options.page - 1) * options.limit;
 
-    // 1. Get total count
-    const [countRows] = await db.query(
-        `
-        SELECT COUNT(*) as total
-        FROM leads
-        WHERE deleted_at IS NOT NULL
-        `
-    );
-
-    const total = (countRows as any)[0].total;
-
-    // 2. Get paginated data
     const [rows] = await db.query(
         `
         SELECT
@@ -190,11 +182,24 @@ export async function findDeletedLeads(page = 1, limit = 10) {
         ORDER BY deleted_at DESC
         LIMIT ? OFFSET ?
         `,
-        [limit, offset]
+        [options.limit, offset]
     );
+
+    const [countRows] = await db.query(
+        `
+        SELECT COUNT(*) AS total
+        FROM leads
+        WHERE deleted_at IS NOT NULL
+        `
+    );
+
+    const countResult =
+        (countRows as Array<{ total: number }>)[0] || { total: 0 };
 
     return {
         items: rows as LeadRecord[],
-        total,
+        total: countResult.total,
+        page: options.page,
+        limit: options.limit,
     };
 }
