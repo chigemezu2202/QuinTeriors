@@ -129,10 +129,23 @@ export async function getDeletedLeadsController(
     try {
         const page = Number(req.query.page ?? 1);
         const limit = Number(req.query.limit ?? 10);
+        const sortField = typeof req.query.sortField === 'string' ? req.query.sortField : 'deleted_at';
+        
+        // 1. Get the query value and convert it to uppercase if it is a string
+        const rawSortOrder = typeof req.query.sortOrder === 'string'
+            ? req.query.sortOrder.toUpperCase()
+            : '';
+
+        // 2. Check if it matches "ASC" or "DESC", otherwise fall back to "DESC"
+        const sortOrder: "ASC" | "DESC" = rawSortOrder === 'ASC' || rawSortOrder === 'DESC'
+            ? rawSortOrder
+            : 'DESC';
 
         const leads = await leadService.getDeletedLeads({
             page: Number.isNaN(page) || page < 1 ? 1 : page,
             limit: Number.isNaN(limit) || limit < 1 ? 10 : limit,
+            sortField,
+            sortOrder,
         });
 
         return successResponse(res, leads);

@@ -1,4 +1,10 @@
 import { db } from '../../config/db.js';
+import { FindLeadsOptions } from '../../utils/find-opt.js';
+import { column, createLeadsSearchFilter, leadsSortFields } from '../../utils/modules/leads.js';
+import { paginate } from '../../utils/paginate.js';
+import { buildWhereClause } from '../../utils/query-builder.js';
+import { filtersWithNoDeletedItems, filtersWithOnlyDeletedItems } from '../../utils/soft-del-qrys.js';
+import { buildSortClause } from '../../utils/sorting.js';
 
 export interface LeadRecord {
     id: number;
@@ -32,35 +38,41 @@ export async function insertLead(data: {
     return insertResult.insertId;
 }
 
-export async function findLeads(options: {
-    page: number;
-    limit: number;
-    status?: string | undefined;
-}) {
-    const offset = (options.page - 1) * options.limit;
-    const filters: string[] = ['deleted_at IS NULL'];
-    const values: Array<string | number> = [];
-
+export async function findLeads(options: FindLeadsOptions) {
+    // *** Add the status filter if the user selected one
     if (options.status) {
-        filters.push('status = ?');
-        values.push(options.status);
+        filtersWithNoDeletedItems.push({
+            field: "status",
+            value: options.status,
+        });
     }
 
-    const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
-    const [rows] = await db.query(
-        `SELECT id, name, phone, email, message, service_id, status, ip_address, user_agent, created_at, updated_at, deleted_at FROM leads ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-        [...values, options.limit, offset],
+    // *** Add the multi-column search group if the user typed a search word
+    if (options.search) {
+        filtersWithNoDeletedItems.push(createLeadsSearchFilter(options.search));
+    }
+
+    //NOTE: *** Build Where Clause Helper Func - *** Returning Where Clause Field, It's Operators and Values Array 
+    const { whereClause, values } = buildWhereClause(filtersWithNoDeletedItems);
+
+    //NOTE: *** Build Sort Clause Helper Func - *** Returning Order By Clause Based on User Input and Allowed Fields and Order
+    const orderBy = buildSortClause(
+        options.sortField,
+        options.sortOrder,
+        leadsSortFields.allowedFields,
+        leadsSortFields.defaultField
     );
 
-    const [countRows] = await db.query(`SELECT COUNT(*) AS total FROM leads ${whereClause}`, values);
-    const countResult = (countRows as Array<{ total: number }>)[0] || { total: 0 };;
-
-    return {
-        items: rows as LeadRecord[],
-        total: countResult.total,
+    // *** It passes everything safely to your database.
+    return paginate<LeadRecord>({
+        table: "leads",
+        select: `${column()}`,
+        whereClause,
+        values,
+        orderBy,
         page: options.page,
         limit: options.limit,
-    };
+    });
 }
 
 export async function findLeadById(id: number) {
@@ -143,8 +155,7 @@ export async function restoreLead(id: number) {
         `
         UPDATE leads
         SET
-            deleted_at = NULL,
-            updated_at = NOW()
+            deleted_at = NULL
         WHERE id = ?
             AND deleted_at IS NOT NULL
         `,
@@ -157,49 +168,39 @@ export async function restoreLead(id: number) {
 }
 
 // Add Trash Query
-export async function findDeletedLeads(options: {
-    page: number;
-    limit: number;
-     
-}) {
-    const offset = (options.page - 1) * options.limit;
+export async function findDeletedLeads(options: FindLeadsOptions) {
+    // *** Add the status filter if the user selected one
+    if (options.status) {
+        filtersWithOnlyDeletedItems.push({
+            field: "status",
+            value: options.status,
+        });
+    }
 
-    const [rows] = await db.query(
-        `
-        SELECT
-            id,
-            name,
-            phone,
-            email,
-            message,
-            service_id,
-            status,
-            created_at,
-            updated_at,
-            deleted_at
-        FROM leads
-        WHERE deleted_at IS NOT NULL
-        ORDER BY deleted_at DESC
-        LIMIT ? OFFSET ?
-        `,
-        [options.limit, offset]
+    // *** Add the multi-column search group if the user typed a search word
+    if (options.search) {
+        filtersWithOnlyDeletedItems.push(createLeadsSearchFilter(options.search));
+    }
+  
+    //NOTE: *** Build Where Clause Helper Func - *** Returning Where Clause Field, It's Operators and Values Array 
+    const { whereClause, values } = buildWhereClause(filtersWithOnlyDeletedItems);
+
+    //NOTE: *** Build Sort Clause Helper Func - *** Returning Order By Clause Based on User Input and Allowed Fields and Order
+    const orderBy = buildSortClause(
+        options.sortField,
+        options.sortOrder,
+        leadsSortFields.allowedFields,
+        leadsSortFields.defaultField
     );
 
-    const [countRows] = await db.query(
-        `
-        SELECT COUNT(*) AS total
-        FROM leads
-        WHERE deleted_at IS NOT NULL
-        `
-    );
-
-    const countResult =
-        (countRows as Array<{ total: number }>)[0] || { total: 0 };
-
-    return {
-        items: rows as LeadRecord[],
-        total: countResult.total,
+    // *** It passes everything safely to your database.
+    return paginate<LeadRecord>({
+        table: "leads",
+        select: `${column()}`,
+        whereClause,
+        values,
+        orderBy,
         page: options.page,
         limit: options.limit,
-    };
+    });
 }
