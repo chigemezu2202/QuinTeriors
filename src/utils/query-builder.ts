@@ -41,12 +41,15 @@ export function buildWhereClause(filters: Filter[]) {
           op = op === "IS NOT" ? "IS NOT" : "IS";
           subConditions.push(`${col.name} ${op} NULL`);
         } else {
+          // 🌟 Ensure % wildcards are wrapped correctly for LIKE operations
           const finalValue = op === "LIKE" ? `%${val}%` : val;
           subConditions.push(`${col.name} ${op} ?`);
           values.push(finalValue);
         }
       }
 
+      // conditions.push(`(${subConditions.join(" OR ")})`);
+      // 🌟 CRITICAL ENTERPRISE FIX: Wrap the combined OR strings in strict parentheses!
       conditions.push(`(${subConditions.join(" OR ")})`);
     }
     // CASE 2: Handle a single column (like before)

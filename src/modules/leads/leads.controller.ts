@@ -29,8 +29,20 @@ export async function getLeadsController(req: Request, res: Response) {
         const page = Number(req.query.page ?? 1);
         const limit = Number(req.query.limit ?? 10);
         const status = typeof req.query.status === 'string' ? req.query.status : undefined;
-        
+        const sortField = typeof req.query.sortField === 'string' ? req.query.sortField : 'deleted_at';
 
+        // 1. Get the query value and convert it to uppercase if it is a string
+        const rawSortOrder = typeof req.query.sortOrder === 'string'
+            ? req.query.sortOrder.toUpperCase()
+            : '';
+
+        // 2. Check if it matches "ASC" or "DESC", otherwise fall back to "DESC"
+        const sortOrder: "ASC" | "DESC" = rawSortOrder === 'ASC' || rawSortOrder === 'DESC'
+            ? rawSortOrder
+            : 'DESC';
+
+        // console.log("INFO")
+        // console.log(page, limit, sortField, rawSortOrder, status)
         const leads = await leadService.getLeads({
             page: Number.isNaN(page) || page < 1 ? 1 : page,
             limit: Number.isNaN(limit) || limit < 1 ? 10 : limit,
@@ -123,30 +135,39 @@ export async function deleteLeadController(req: Request, res: Response) {
 }
 
 // Add Trash Controller 
-export async function getDeletedLeadsController(
-    req: Request,
-    res: Response,
-) {
+export async function getDeletedLeadsController(req: Request, res: Response) {
     try {
         const page = Number(req.query.page ?? 1);
         const limit = Number(req.query.limit ?? 10);
         const sortField = typeof req.query.sortField === 'string' ? req.query.sortField : 'deleted_at';
-        
-        // 1. Get the query value and convert it to uppercase if it is a string
-        const rawSortOrder = typeof req.query.sortOrder === 'string'
-            ? req.query.sortOrder.toUpperCase()
-            : '';
 
-        // 2. Check if it matches "ASC" or "DESC", otherwise fall back to "DESC"
-        const sortOrder: "ASC" | "DESC" = rawSortOrder === 'ASC' || rawSortOrder === 'DESC'
-            ? rawSortOrder
-            : 'DESC';
+        // 🌟 CRITICAL FIX: Strip away empty strings or literal text "undefined" ghosts
+        let search = typeof req.query.search === 'string' ? req.query.search.trim() : undefined;
+        if (search === "" || search === "undefined") {
+            search = undefined;
+        }
 
+        let status = typeof req.query.status === 'string' ? req.query.status.trim() : undefined;
+        if (status === "" || status === "undefined") {
+            status = undefined;
+        }
+
+        // ***1. Sort-- Get the query value and convert it to uppercase if it is a string
+        const rawSortOrder = typeof req.query.sortOrder === 'string' ? req.query.sortOrder.toUpperCase() : '';
+
+        // ***2. Sort-- Check if it matches "ASC" or "DESC", otherwise fall back to "DESC"
+        const sortOrder: "ASC" | "DESC" = rawSortOrder === 'ASC' || rawSortOrder === 'DESC' ? rawSortOrder : 'DESC';
+
+        console.log("INFO")
+        console.log(page,limit,sortField,sortOrder,status,search)
+        // 🌟 2. Pass status and search down into your service function
         const leads = await leadService.getDeletedLeads({
             page: Number.isNaN(page) || page < 1 ? 1 : page,
             limit: Number.isNaN(limit) || limit < 1 ? 10 : limit,
             sortField,
             sortOrder,
+            status, // 👈 Added
+            search, // 👈 Added
         });
 
         return successResponse(res, leads);

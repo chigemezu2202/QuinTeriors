@@ -2,7 +2,7 @@ import { db } from '../../config/db.js';
 import { FindLeadsOptions } from '../../utils/find-opt.js';
 import { column, createLeadsSearchFilter, leadsSortFields } from '../../utils/modules/leads.js';
 import { paginate } from '../../utils/paginate.js';
-import { buildWhereClause } from '../../utils/query-builder.js';
+import { buildWhereClause, Filter } from '../../utils/query-builder.js';
 import { filtersWithNoDeletedItems, filtersWithOnlyDeletedItems } from '../../utils/soft-del-qrys.js';
 import { buildSortClause } from '../../utils/sorting.js';
 
@@ -169,9 +169,13 @@ export async function restoreLead(id: number) {
 
 // Add Trash Query
 export async function findDeletedLeads(options: FindLeadsOptions) {
+    // 🌟 THE FIX: Create a fresh local copy for THIS specific network request!
+    // This leaves the original global template clean for the next request.
+    const activeFilters: Filter[] = [...filtersWithOnlyDeletedItems];
+    
     // *** Add the status filter if the user selected one
     if (options.status) {
-        filtersWithOnlyDeletedItems.push({
+        activeFilters.push({
             field: "status",
             value: options.status,
         });
@@ -179,11 +183,11 @@ export async function findDeletedLeads(options: FindLeadsOptions) {
 
     // *** Add the multi-column search group if the user typed a search word
     if (options.search) {
-        filtersWithOnlyDeletedItems.push(createLeadsSearchFilter(options.search));
+        activeFilters.push(createLeadsSearchFilter(options.search));
     }
   
     //NOTE: *** Build Where Clause Helper Func - *** Returning Where Clause Field, It's Operators and Values Array 
-    const { whereClause, values } = buildWhereClause(filtersWithOnlyDeletedItems);
+    const { whereClause, values } = buildWhereClause(activeFilters);
 
     //NOTE: *** Build Sort Clause Helper Func - *** Returning Order By Clause Based on User Input and Allowed Fields and Order
     const orderBy = buildSortClause(

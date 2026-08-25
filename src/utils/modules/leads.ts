@@ -21,12 +21,14 @@ export const column = () => {
 }
 
 export function createLeadsSearchFilter(search: string): Filter {
+
+  // If an empty string or white space somehow gets here, strip it down
+  const cleanSearch = search ? search.trim() : "";
   return {
     field: [
-      { name: "status", operator: "=", value: search },
-      { name: "name", operator: "LIKE", value: search },
-      { name: "email", operator: "LIKE", value: search }
-      
+      { name: "status", operator: "=", value: cleanSearch },
+      { name: "name", operator: "LIKE", value: cleanSearch },
+      { name: "email", operator: "LIKE", value: cleanSearch }
     ]
   };
 }

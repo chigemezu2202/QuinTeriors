@@ -29,6 +29,7 @@ app.set('trust proxy', 1);
 const allowedOrigin: (string | undefined)[] = [
     process.env.CLIENT_URL, //remote domain
     "http://localhost:5173", // local dev
+    "https://www.quinteriors.com", // local dev
 ];
 //TODO: Enable CORS middleware with proper options
 const corsOptions : CorsOptions = {
