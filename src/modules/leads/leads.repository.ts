@@ -1,4 +1,10 @@
 import { db } from '../../config/db.js';
+import { FindLeadsOptions } from '../../utils/find-opt.js';
+import { column, createLeadsSearchFilter, leadsSortFields } from '../../utils/modules/leads.js';
+import { paginate } from '../../utils/paginate.js';
+import { buildWhereClause, Filter } from '../../utils/query-builder.js';
+import { filtersWithNoDeletedItems, filtersWithOnlyDeletedItems } from '../../utils/soft-del-qrys.js';
+import { buildSortClause } from '../../utils/sorting.js';
 
 export interface LeadRecord {
     id: number;
@@ -11,6 +17,8 @@ export interface LeadRecord {
     ip_address?: string | null;
     user_agent?: string | null;
     created_at: string;
+    updated_at?: string | null;
+    deleted_at?: string | null;
 }
 
 export async function insertLead(data: {
@@ -30,55 +38,62 @@ export async function insertLead(data: {
     return insertResult.insertId;
 }
 
-export async function findLeads(options: {
-    page: number;
-    limit: number;
-    status?: string | undefined;
-}) {
-    const offset = (options.page - 1) * options.limit;
-    const filters: string[] = [];
-    const values: Array<string | number> = [];
-
+export async function findLeads(options: FindLeadsOptions) {
+    // *** Add the status filter if the user selected one
     if (options.status) {
-        filters.push('status = ?');
-        values.push(options.status);
+        filtersWithNoDeletedItems.push({
+            field: "status",
+            value: options.status,
+        });
     }
 
-    const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
-    const [rows] = await db.query(
-        `SELECT id, name, phone, email, message, service_id, status, ip_address, user_agent, created_at FROM leads ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-        [...values, options.limit, offset],
+    // *** Add the multi-column search group if the user typed a search word
+    if (options.search) {
+        filtersWithNoDeletedItems.push(createLeadsSearchFilter(options.search));
+    }
+
+    //NOTE: *** Build Where Clause Helper Func - *** Returning Where Clause Field, It's Operators and Values Array 
+    const { whereClause, values } = buildWhereClause(filtersWithNoDeletedItems);
+
+    //NOTE: *** Build Sort Clause Helper Func - *** Returning Order By Clause Based on User Input and Allowed Fields and Order
+    const orderBy = buildSortClause(
+        options.sortField,
+        options.sortOrder,
+        leadsSortFields.allowedFields,
+        leadsSortFields.defaultField
     );
 
-    const [countRows] = await db.query(`SELECT COUNT(*) AS total FROM leads ${whereClause}`, values);
-    const countResult = (countRows as Array<{ total: number }>)[0] || { total: 0 };;
-
-    return {
-        items: rows as LeadRecord[],
-        total: countResult.total,
+    // *** It passes everything safely to your database.
+    return paginate<LeadRecord>({
+        table: "leads",
+        select: `${column()}`,
+        whereClause,
+        values,
+        orderBy,
         page: options.page,
         limit: options.limit,
-    };
+    });
 }
 
 export async function findLeadById(id: number) {
     const [rows] = await db.query(
         `SELECT id, name, phone, email, message, service_id, status, ip_address, user_agent, created_at 
          FROM leads 
-         WHERE id = ? 
+         WHERE id = ?
+         AND deleted_at IS NULL
          LIMIT 1`,
         [id],
     );
 
     const lead = (rows as LeadRecord[])[0];
 
-    
+
     return lead || null;
 }
 
 export async function deleteLead(id: number) {
     const [result] = await db.query(
-        `DELETE FROM leads WHERE id = ?`,
+        `UPDATE leads SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL`,
         [id],
     );
 
@@ -128,7 +143,68 @@ export async function updateLead(id: number, data: {
     }
 
     values.push(id);
-    const [result] = await db.query(`UPDATE leads SET ${assignments.join(', ')} WHERE id = ?`, values);
+    const [result] = await db.query(`UPDATE leads SET ${assignments.join(', ')} WHERE id = ? AND deleted_at IS NULL`, values);
     const updateResult = result as { affectedRows: number };
     return updateResult.affectedRows > 0;
+}
+
+
+// Add Restore Function
+export async function restoreLead(id: number) {
+    const [result] = await db.query(
+        `
+        UPDATE leads
+        SET
+            deleted_at = NULL
+        WHERE id = ?
+            AND deleted_at IS NOT NULL
+        `,
+        [id],
+    );
+
+    const restoreResult = result as { affectedRows: number };
+
+    return restoreResult.affectedRows > 0;
+}
+
+// Add Trash Query
+export async function findDeletedLeads(options: FindLeadsOptions) {
+    // 🌟 THE FIX: Create a fresh local copy for THIS specific network request!
+    // This leaves the original global template clean for the next request.
+    const activeFilters: Filter[] = [...filtersWithOnlyDeletedItems];
+    
+    // *** Add the status filter if the user selected one
+    if (options.status) {
+        activeFilters.push({
+            field: "status",
+            value: options.status,
+        });
+    }
+
+    // *** Add the multi-column search group if the user typed a search word
+    if (options.search) {
+        activeFilters.push(createLeadsSearchFilter(options.search));
+    }
+  
+    //NOTE: *** Build Where Clause Helper Func - *** Returning Where Clause Field, It's Operators and Values Array 
+    const { whereClause, values } = buildWhereClause(activeFilters);
+
+    //NOTE: *** Build Sort Clause Helper Func - *** Returning Order By Clause Based on User Input and Allowed Fields and Order
+    const orderBy = buildSortClause(
+        options.sortField,
+        options.sortOrder,
+        leadsSortFields.allowedFields,
+        leadsSortFields.defaultField
+    );
+
+    // *** It passes everything safely to your database.
+    return paginate<LeadRecord>({
+        table: "leads",
+        select: `${column()}`,
+        whereClause,
+        values,
+        orderBy,
+        page: options.page,
+        limit: options.limit,
+    });
 }

@@ -27,7 +27,7 @@ app.set('trust proxy', 1);
 
 //TODO: Allowed Origin for CORS
 const allowedOrigin: (string | undefined)[] = [
-    process.env.CLIENT_URL,
+    process.env.CLIENT_URL, // local / remote domain base on environment
     "http://localhost:5173", // local dev
     "http://localhost:3000", // local dev
     "https://www.quinteriors.com", // local dev

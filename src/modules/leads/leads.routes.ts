@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import {
-    getLeadByIdController, deleteLeadController, createLeadController, getLeadsController, updateLeadController
+    createLeadController,
+    getLeadsController,
+    getLeadByIdController,
+    updateLeadController,
+    deleteLeadController,
+    getDeletedLeadsController,
+    restoreLeadController,
 } from './leads.controller.js';
 import { leadsRateLimiter } from '../../middlewares/rateLimit.js';
 import { validateSchema } from '../../middlewares/validate.js';
@@ -38,11 +44,18 @@ const updateLeadSchema = z.object({
 
 router.post('/', leadsRateLimiter, validateSchema(createLeadSchema), createLeadController);
 
+router.get('/trash', getDeletedLeadsController);
+
 router.get('/', getLeadsController);
 
 router.get('/:id', getLeadByIdController);
 
 router.patch('/:id', validateSchema(updateLeadSchema), updateLeadController);
+
+router.patch(
+    '/:id/restore',
+    restoreLeadController,
+);
 
 router.delete('/:id', deleteLeadController);
 

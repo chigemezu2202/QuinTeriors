@@ -1,3 +1,4 @@
+import { FindLeadsOptions } from '../../utils/find-opt.js';
 import * as repo from './leads.repository.js';
 
 export async function createLead(data: {
@@ -14,7 +15,7 @@ export async function createLead(data: {
     return { id, ...data, status: 'new' };
 }
 
-export async function getLeads(options: { page: number; limit: number; status?: string | undefined }) {
+export async function getLeads(options: FindLeadsOptions) {
     return repo.findLeads(options);
 }
 
@@ -36,4 +37,14 @@ export async function updateLead(id: number, data: {
 }) {
     const updated = await repo.updateLead(id, data);
     return updated;
+}
+
+// Add Restore  Service
+export async function restoreLead(id: number) {
+    return repo.restoreLead(id);
+}
+
+// Add Trash Service 
+export async function getDeletedLeads(options: FindLeadsOptions) {
+    return repo.findDeletedLeads(options);
 }
